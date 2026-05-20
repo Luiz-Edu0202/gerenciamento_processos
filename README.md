@@ -1,9 +1,4 @@
 # gerenciamento_processos
-Claro! Vou detalhar o projeto **"Monitor de recursos com alerta"** adaptado para o Windows, mantendo o espírito do original (cgroups no Linux). O objetivo é: **controlar e monitorar o uso de CPU e memória de um ou mais processos, aplicando limites e gerando alertas quando os recursos excederem um limiar.**
-
-Aqui está um plano completo, com código e explicações.
-
----
 
 ## 🎯 Objetivo do Projeto
 
@@ -269,8 +264,6 @@ Após dominar o básico, você pode:
 ## ✅ Conclusão
 
 Com esse projeto, você terá na prática o controle de recursos de processos no Windows, similar ao `cgroups` do Linux, usando ferramentas nativas. Você aprenderá sobre **Job Objects**, **Performance Counters**, **PowerShell avançado**, **Agendador de Tarefas** e **alertas**.
----
-Aqui está uma descrição detalhada do projeto **"Monitor de recursos com alerta (cgroups)"** para Linux, usando cgroups (v2, que é o padrão atual). O objetivo é criar um ambiente controlado onde você pode limitar, monitorar e receber alertas sobre o uso de CPU e memória de um grupo de processos.
 
 ---
 

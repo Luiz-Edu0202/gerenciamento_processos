@@ -69,7 +69,7 @@ O Linux oferece a política de escalonamento `SCHED_RR` para threads **reais** (
 ## Quando o Round Robin é usado?
 
 - **Sistemas de tempo compartilhado** (Unix/Linux em modo de usuário, com CFS, que é uma evolução do RR).  
-- **Emuladores e simuladores** (como o seu projeto) para demonstrar preempção.  
+- **Emuladores e simuladores** (como esse projeto) para demonstrar preempção.  
 - **Camadas de tempo real** (ex.: `SCHED_RR` no Linux para threads críticas).
 
 ---
@@ -108,7 +108,6 @@ Ao final, teremos um script completo e funcional.
 
 ## Passo 1 – Estrutura básica e criação dos processos filhos
 
-### Teoria
 O escalonador será o **processo pai**. Ele cria `N` processos filhos usando `fork()`. Cada filho executará uma função `trabalho_cpu()` que consome CPU continuamente.  
 Para que o pai controle quem executa, cada filho começa **suspenso** (`SIGSTOP` logo após nascer). Assim, o pai precisa enviar `SIGCONT` para liberar um filho por vez.
 
@@ -195,7 +194,6 @@ Após 5 segundos, o programa mata os filhos e termina.
 
 ## Passo 2 – Escalonador simples (Round Robin sem timer)
 
-### Teoria
 O pai deve escolher um processo para executar e enviar `SIGCONT`. Depois de um certo tempo (quantum), ele envia `SIGSTOP` para esse processo e passa para o próximo. Inicialmente faremos sem timer: um loop onde cada filho executa por 1 segundo (medido com `sleep(1)`) e depois trocamos.
 
 ### Código a adicionar (substitua o `sleep(5)` e a seção final)
@@ -236,7 +234,6 @@ Em outro terminal, use `top -p PID1,PID2,PID3` (substitua pelos PIDs dos filhos)
 
 ## Passo 3 – Timer real (`setitimer`) com sinal `SIGALRM`
 
-### Teoria
 Para um controle mais realista e preciso, usamos `setitimer(ITIMER_REAL, ...)`. Ele envia `SIGALRM` ao processo pai após um intervalo (nosso quantum). O pai deve instalar um tratador para `SIGALRM` que, ao ser chamado, interrompa o processo atual e sinalize que é hora de trocar.
 
 ### Código a adicionar (antes de `main`, variáveis globais)
@@ -310,7 +307,6 @@ Use `strace -e signal -p PID_DO_PAI` para confirmar que `SIGALRM` está sendo re
 
 ## Passo 4 – Medição do tempo de execução de cada processo
 
-### Teoria
 Queremos saber, ao final da simulação, quanto tempo real cada filho efetivamente executou (soma de seus quanta). Como o pai controla o início e a pausa de cada filho, podemos usar `clock_gettime(CLOCK_MONOTONIC, ...)` para marcar o instante em que enviamos `SIGCONT` e o instante em que enviamos `SIGSTOP` (dentro do tratador). A diferença é o tempo de CPU (tempo de parede) que o filho ocupou.
 
 ### Código a adicionar (variáveis globais)
@@ -374,7 +370,6 @@ Execute a simulação por muitas rodadas (ex.: 100 trocas). A soma dos tempos de
 
 ## Passo 5 – Escalonador configurável (outros algoritmos)
 
-### Teoria
 Podemos implementar diferentes políticas alterando a lógica de escolha do próximo processo. Vamos criar uma função `proximo_processo()` que, por enquanto, implementa Round Robin. Depois você pode modificar para prioridades fixas, prioridades dinâmicas, etc.
 
 ### Código (adicione antes de `main`)
@@ -415,7 +410,6 @@ Troque a função chamada e observe a ordem de execução. Para prioridades fixa
 
 ## Passo 6 – Tratamento adequado de sinais e término dos filhos
 
-### Teoria
 Os sinais `SIGSTOP` e `SIGCONT` são seguros, mas o `SIGALRM` pode chegar enquanto o pai está no meio de uma troca, causando condições de corrida. Além disso, se um filho terminar prematuramente, o pai deve removê‑lo da fila para não tentar parar/continuar um processo inexistente.
 
 ### Código para mascarar `SIGALRM` durante a troca (use `sigprocmask`)

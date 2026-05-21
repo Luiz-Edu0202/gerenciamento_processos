@@ -1,3 +1,93 @@
+# Gerênciamento de Processos
+
+## O que é o Round Robin?
+
+Round Robin é um **algoritmo de escalonamento preemptivo** usado por sistemas operacionais para distribuir o tempo da CPU entre processos. Ele funciona de forma semelhante a um **sistema de turnos circular**: cada processo recebe uma fatia fixa de tempo (chamada de *quantum* ou *time slice*) para executar. Se o processo não terminar dentro desse quantum, ele é interrompido (preemptado) e colocado no final da fila de prontos, e o próximo processo da fila começa a executar.
+
+---
+
+## Como funciona passo a passo
+
+1. **Fila circular**  
+   Todos os processos prontos são organizados em uma fila (geralmente FIFO – primeiro a entrar, primeiro a sair). O escalonador mantém um ponteiro para o processo atual.
+
+2. **Execução por quantum**  
+   O processo no início da fila recebe a CPU por um intervalo de tempo fixo (ex.: 10 ms, 50 ms, 100 ms). Durante esse tempo, ele pode:
+   - **Terminar** antes do quantum acabar → libera a CPU, e o próximo processo da fila é escalonado.
+   - **Usar todo o quantum** → o timer dispara uma interrupção, o sistema operacional interrompe o processo, salva seu estado e o move para o **final da fila**.
+
+3. **Repetição**  
+   O próximo processo da fila é então escalonado, e o ciclo se repete indefinidamente até que todos os processos terminem.
+
+---
+
+## Exemplo concreto
+
+Suponha três processos: **P1, P2, P3** chegam na ordem. Quantum = 4 ms. Durações totais: P1 = 10 ms, P2 = 6 ms, P3 = 3 ms.
+
+| Tempo (ms) | Processo | O que acontece |
+|------------|----------|----------------|
+| 0 – 4      | P1       | Executa 4 ms (restam 6) → vai para o fim da fila |
+| 4 – 8      | P2       | Executa 4 ms (restam 2) → vai para o fim |
+| 8 – 12     | P3       | Executa 3 ms e termina (antes do quantum) → remove da fila |
+| 12 – 16    | P1       | Executa 4 ms (restam 2) → vai para o fim |
+| 16 – 20    | P2       | Executa 2 ms e termina |
+| 20 – 22    | P1       | Executa últimos 2 ms e termina |
+
+Ordem de execução: P1 → P2 → P3 → P1 → P2 → P1.
+
+---
+
+## Características importantes
+
+- **Preemptivo** – a CPU é retirada do processo mesmo que ele não tenha terminado.
+- **Justo** – todos os processos recebem a mesma oportunidade de usar a CPU.
+- **Tempo de resposta** – bom para sistemas interativos (como o Linux), pois processos curtos respondem rápido.
+- **Overhead de troca de contexto** – ocorre a cada quantum, mesmo que o processo não termine. O quantum deve ser balanceado:  
+  - *Muito pequeno* → muitas trocas de contexto, desperdício de CPU.  
+  - *Muito grande* → degenera para FCFS (FIFO), perde a responsividade.
+
+---
+
+## Como o Linux implementa o Round Robin?
+
+O Linux oferece a política de escalonamento `SCHED_RR` para threads **reais** (tempo real). Ela é semelhante ao Round Robin clássico, mas com prioridades fixas e quantum configurável. Para processos comuns (agendamento `SCHED_OTHER`), o Linux usa o **CFS (Completely Fair Scheduler)**, que não é exatamente Round Robin – ele é baseado em *tempo virtual* e proporções, mas também busca justiça.
+
+---
+
+## Vantagens e desvantagens
+
+| Vantagens | Desvantagens |
+|-----------|---------------|
+| ☑️ Justo (todos recebem fatia igual) | ❌ Overhead de trocas de contexto |
+| ☑️ Baixo tempo de resposta para processos interativos | ❌ Não considera prioridades (a menos que combinado com filas múltiplas) |
+| ☑️ Fácil de implementar | ❌ Desempenho depende da escolha do quantum |
+| ☑️ Previsível (tempo máximo de espera limitado) | ❌ Processos longos podem “atravessar” muitos quanta |
+
+---
+
+## Quando o Round Robin é usado?
+
+- **Sistemas de tempo compartilhado** (Unix/Linux em modo de usuário, com CFS, que é uma evolução do RR).  
+- **Emuladores e simuladores** (como o seu projeto) para demonstrar preempção.  
+- **Camadas de tempo real** (ex.: `SCHED_RR` no Linux para threads críticas).
+
+---
+
+## Resumo visual
+
+```
+Fila de prontos: [P1] [P2] [P3]
+
+1. Executa P1 por quantum → se não terminar, vai para o final: [P2] [P3] [P1]
+2. Executa P2 por quantum → se não terminar, vai para o final: [P3] [P1] [P2]
+3. Executa P3 por quantum → ...
+```
+
+Assim, o algoritmo garante que nenhum processo “morra de fome” (starvation), pois todos eventualmente recebem CPU.
+
+---
+
 Abaixo, um tutorial passo a passo para implementar um **simulador de escalonamento de CPU** que utiliza processos reais do Linux. O programa será escrito em C, usará `fork()`, sinais (`SIGSTOP`/`SIGCONT`), timers reais e um escalonador configurável (Round Robin). Cada passo inclui:
 
 - **Conceito teórico**  
